@@ -35,8 +35,8 @@ int main(int argc, char *argv[]){
     std::cout << "The time is roughly " << std::to_string(current_time.tv_sec) << std::endl;
 
     ScheduleEvent test_event;
-    test_event.action = four_hertz_task;
-    test_event.action(123.0);
+    test_event.add_action(four_hertz_task);
+    test_event.actions[0](123.0);
 
     // build up a list of first _task events
     Schedule my_schedule;

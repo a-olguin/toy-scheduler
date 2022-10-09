@@ -1,13 +1,26 @@
 #include <forward_list>
 #include <functional>
 #include <string>
-#include <iostream>
+#include <array>
 
 constexpr double event_precision = 0.001;
+constexpr size_t max_actions_per_event = 3;
+
 struct ScheduleEvent {
     double execution_time;
+    size_t current_action_index;
     std::string name;
-    std::function<void(double)> action;
+    std::array<std::function<void(double)>, max_actions_per_event> actions;
+    bool add_action(std::function<void(double)> action){
+        bool retval = true;
+        if (current_action_index < max_actions_per_event){
+            actions[current_action_index] = action;
+            current_action_index++;
+        } else {
+            retval = false;
+        }
+        return retval;
+    }
 };
 
 class Schedule {
@@ -27,14 +40,14 @@ public:
         }
     }
 
-    void add_to_schedule(double freq, std::string event_name, std::function<void(double)> event) //TODO: account for offset
+    void add_to_schedule(double freq, std::string event_name, std::function<void(double)> action) //TODO: account for offset
     {
         // add event to the schedule such that it is triggered at the desired frequency (assuming a 1hz total schedule frequency)
         double schedule_time = 0.0;
         double period = 1.0 / freq; // div/0 vulnerability
         
-        ScheduleEvent event_to_add;
-        event_to_add.action = event;
+        ScheduleEvent event_to_add = {};
+        event_to_add.add_action(action);
         event_to_add.name = event_name;
         event_to_add.execution_time = schedule_time;
     
@@ -59,6 +72,8 @@ public:
                 // catch equality case
                 if ((*schedule_item).execution_time - schedule_time < event_precision) {
                     // times are basically the same, put them in bois
+                    (*schedule_item).add_action(action);
+                    (*schedule_item).name += "; " + event_name;
                     schedule_item++;
                     break;
 
@@ -77,8 +92,6 @@ public:
             schedule.insert_after(schedule_item, event_to_add);
             schedule_item++;
             schedule_next++;
-
-
             schedule_time += period;
         }
     }
