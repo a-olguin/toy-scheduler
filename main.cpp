@@ -22,21 +22,21 @@ void two_hertz_task(double call_time){
 
 void print_schedule(Schedule& schedule){
     for (auto &el : schedule.schedule){
+        std::cout << el.name << " Num actions: " << std::to_string(el.current_action_index) << std::endl;
         std::cout << el.name << ": " << std::to_string(el.execution_time) << std::endl;
     }
 }
 
 int main(int argc, char *argv[]){
     std::cout << "Hello World! I'm a C++ program!" << std::endl;
-    std::array<int, 3> hmm;
 
     struct timespec current_time;
     clock_gettime(CLOCK_REALTIME, &current_time);
     std::cout << "The time is roughly " << std::to_string(current_time.tv_sec) << std::endl;
 
-    ScheduleEvent test_event;
-    test_event.add_action(four_hertz_task);
-    test_event.actions[0](123.0);
+    ScheduleEvent test_event = {};
+    test_event.add_action(std::function<void(double)>(four_hertz_task));
+    (test_event.actions[0])(123.0);
 
     // build up a list of first _task events
     Schedule my_schedule;
