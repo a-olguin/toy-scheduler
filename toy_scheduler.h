@@ -18,7 +18,7 @@ struct ScheduleEvent {
     double execution_time;
     size_t current_action_index;
     std::string name;
-    std::array<std::tuple<std::function<void(double)>, SchedulerPriority>, max_actions_per_event> actions;
+    std::array<std::function<void(double)>, max_actions_per_event> actions;
     bool add_action(std::function<void(double)> action){
         bool retval = true;
         if (current_action_index < max_actions_per_event){
