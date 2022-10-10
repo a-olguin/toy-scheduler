@@ -30,21 +30,21 @@ void print_schedule(Schedule& schedule){
 int main(int argc, char *argv[]){
     std::cout << "Hello World! I'm a C++ program!" << std::endl;
 
-    struct timespec current_time;
-    clock_gettime(CLOCK_REALTIME, &current_time);
-    std::cout << "The time is roughly " << std::to_string(current_time.tv_sec) << std::endl;
+    struct timespec starting_time;
+    clock_gettime(CLOCK_MONOTONIC, &starting_time);
+    std::cout << "The time is roughly " << std::to_string(starting_time.tv_sec) << std::endl;
 
     ScheduleEvent test_event = {};
     test_event.add_action(std::function<void(double)>(four_hertz_task));
     (test_event.actions[0])(123.0);
 
-    // build up a list of first _task events
+    // build up a list of task events
     Schedule my_schedule;
 
     // run through the list & execute the schedule
-    my_schedule.add_to_schedule(5.0, "5hz task", std::function<void(double)>(five_hertz_task));
+    my_schedule.add_to_schedule(5.0, "5hz task", std::function<void(double)>(five_hertz_task), 0.1);
     my_schedule.add_to_schedule(4.0, "4hz task", std::function<void(double)>(four_hertz_task), 0.1);
-    my_schedule.add_to_schedule(2.0, "2hz task", std::function<void(double)>(two_hertz_task), 0.27);
+    my_schedule.add_to_schedule(2.0, "2hz task", std::function<void(double)>(two_hertz_task));
     print_schedule(my_schedule);
     return 0;
 }

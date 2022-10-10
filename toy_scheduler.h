@@ -106,6 +106,27 @@ public:
                 continue;
             } 
 
+            // handle events before first event in list
+            if (schedule_time < (*schedule_item).execution_time){
+                // scroll from before beginning to wherever the list currently is
+                auto insert_iterator = schedule.before_begin();
+                auto next_insert_iterator = insert_iterator;
+                next_insert_iterator++;
+                while (next_insert_iterator != schedule_item){
+                    insert_iterator++;
+                    next_insert_iterator++;
+                }
+
+                // now insert_iterator is pointing at the element before schedule_item (almost certainly before_begin element)
+                while(schedule_time < (*schedule_item).execution_time){
+                    event_to_add.execution_time = schedule_time;
+                    schedule.insert_after(insert_iterator, event_to_add);
+                    insert_iterator++;
+                    schedule_time += period;
+                }
+            }
+            
+            // handle events in the middle of the list
             // traverse the schedule until we find a valid entry point
             bool action_added_to_event = false; // gross, flags
             bool traverse_hit_eolist = false;
