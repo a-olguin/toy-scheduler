@@ -56,10 +56,10 @@ public:
         return retval;
     }
 
-    void add_to_schedule(const double freq, const std::string event_name, const std::function<void(double)> action) //TODO: account for offset
+    void add_to_schedule(const double freq, const std::string event_name, const std::function<void(double)> action, const double offset = 0.0) //TODO: restrict offset to less than period
     {
         // add event to the schedule such that it is triggered at the desired frequency (assuming a 1hz total schedule frequency)
-        double schedule_time = 0.0;
+        double schedule_time = 0.0 + offset;
         double period = 1.0 / freq; // div/0 vulnerability
         
         ScheduleEvent event_to_add = {};
@@ -108,7 +108,7 @@ public:
                 if (event_time_taken(schedule_time, (*schedule_item).execution_time)) {
                     // times are basically the same, put them in bois
                     (*schedule_item).add_action(action);
-                    //(*schedule_item).name += event_name;
+                    (*schedule_item).name += ", " + event_name;
                     action_added_to_event = true;
                     break;
 

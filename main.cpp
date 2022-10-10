@@ -22,9 +22,9 @@ void two_hertz_task(double call_time){
 
 void print_schedule(Schedule& schedule){
     for (auto &el : schedule.schedule){
-        std::cout << el.name << " Num actions: " << std::to_string(el.current_action_index) << std::endl;
-        std::cout << el.name << ": " << std::to_string(el.execution_time) << std::endl;
+        std::cout << std::to_string(el.execution_time) << ": [" <<  el.name << "]" << std::endl;
     }
+    std::cout << std::endl;
 }
 
 int main(int argc, char *argv[]){
@@ -43,13 +43,8 @@ int main(int argc, char *argv[]){
 
     // run through the list & execute the schedule
     my_schedule.add_to_schedule(5.0, "5hz task", std::function<void(double)>(five_hertz_task));
+    my_schedule.add_to_schedule(4.0, "4hz task", std::function<void(double)>(four_hertz_task), 0.1);
+    my_schedule.add_to_schedule(2.0, "2hz task", std::function<void(double)>(two_hertz_task), 0.27);
     print_schedule(my_schedule);
-    std::cout << std::endl;
-    my_schedule.add_to_schedule(4.0, "4hz task", std::function<void(double)>(four_hertz_task));
-    print_schedule(my_schedule);
-    std::cout << std::endl;
-    my_schedule.add_to_schedule(2.0, "2hz task", std::function<void(double)>(two_hertz_task));
-    print_schedule(my_schedule);
-
     return 0;
 }
