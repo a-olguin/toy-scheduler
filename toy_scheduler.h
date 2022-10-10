@@ -8,7 +8,7 @@
 constexpr double event_precision = 0.001;
 constexpr size_t max_actions_per_event = 3;
 
-enum {
+typedef enum {
     LOW_PRIORITY,
     MED_PRIORITY,
     HIGH_PRIORITY
@@ -18,11 +18,13 @@ struct ScheduleEvent {
     double execution_time;
     size_t current_action_index;
     std::string name;
+    std::array<SchedulerPriority, max_actions_per_event> priorities; // lazy second array because I can't be bothered to add tuple syntax
     std::array<std::function<void(double)>, max_actions_per_event> actions;
-    bool add_action(std::function<void(double)> action){
+    bool add_action(std::function<void(double)> action, SchedulerPriority priority = MED_PRIORITY){
         bool retval = true;
         if (current_action_index < max_actions_per_event){
             actions[current_action_index] = action;
+            priorities[current_action_index] = priority;
             current_action_index++;
         } else {
             retval = false;
