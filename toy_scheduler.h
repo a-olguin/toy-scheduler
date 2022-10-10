@@ -109,7 +109,6 @@ public:
                     // times are basically the same, put them in bois
                     (*schedule_item).add_action(action);
                     //(*schedule_item).name += event_name;
-                    //schedule_item++;
                     action_added_to_event = true;
                     break;
 
