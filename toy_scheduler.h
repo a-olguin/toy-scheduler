@@ -4,10 +4,11 @@
 #include <array>
 #include <cmath>
 #include <iostream>
+#include <time.h>
 
 constexpr double event_precision = 0.001;
 constexpr size_t max_actions_per_event = 3;
-
+constexpr long one_billion_ns_per_s = 1000000000;
 typedef enum {
     LOW_PRIORITY,
     MED_PRIORITY,
@@ -64,7 +65,95 @@ public:
         return retval;
     }
 
-    void add_to_schedule(const double freq, const std::string event_name, const std::function<void(double)> action, const double offset = 0.0) //TODO: restrict offset to less than period
+    // lazy helper function because I can't remember how specifically to operator overload + for timespec (think I have to do it in timespec class scope)
+    timespec add_linux_times(const timespec& a,const timespec& b){
+        timespec retval;
+        retval.tv_sec = a.tv_sec + b.tv_sec;
+        retval.tv_nsec = a.tv_nsec + b.tv_nsec;
+        while(retval.tv_nsec >= one_billion_ns_per_s) {
+            retval.tv_sec++;
+            retval.tv_nsec -= one_billion_ns_per_s;
+        }
+
+        return retval;
+    }
+
+    // very lazy fn to turn a timespec to a double (less precision at high second counts)
+    double linux_time_to_double(const timespec& a ){
+        double retval = static_cast<double>(a.tv_sec);
+        retval += a.tv_nsec / static_cast<double>(one_billion_ns_per_s);
+        return retval;
+    }
+
+    // lazy helper to turn a double into a timespec, no edge cases handled
+    timespec double_to_linux_time(const double& x){
+        timespec retval;
+        retval.tv_sec = static_cast<time_t>(floor(x));
+        retval.tv_nsec = static_cast<long>((x - floor(x)) * one_billion_ns_per_s);
+        return retval;
+    }
+
+    // lazy helper function for a similar reason to comparing timespecs
+    bool linux_time_a_is_less_than_b(const timespec& a, const timespec& b){
+        return linux_time_to_double(a) < linux_time_to_double(b);
+    }
+
+    //TODO: alignment >= 1.0 an error
+    //TODO: make time conversion & comparisons less lazy
+    void run(const double duration = 0.0, const double alignment = 0.0){ 
+        struct timespec tick;
+        struct timespec tock;
+        struct timespec start_time;
+        struct timespec stop_time;
+        clock_gettime(CLOCK_MONOTONIC, &tick);
+
+        // calc stop time by turning duration into timespec & adding to tick
+        stop_time = add_linux_times(tick,double_to_linux_time(duration));
+
+        // calc start time lazily by adding a second & the alignment factor (as nanoseconds in a timespec)
+        start_time.tv_sec = tick.tv_sec + 1;
+        start_time.tv_nsec = 0;
+        start_time = add_linux_times(start_time, double_to_linux_time(alignment));
+        
+        // generate loop condition vwould be better done with a lambda
+        bool infinite_loop = duration == 0.0;
+
+        tock = start_time; // begin loop with start time in working "next time" variable
+        while( infinite_loop || linux_time_a_is_less_than_b(tick,stop_time)){
+
+            // mark start & end times for this loop
+            auto loop_offset = tock;
+            auto loop_start_time = tock;
+            auto loop_end_time = tock;
+            loop_end_time.tv_sec++;
+            for(auto& el: schedule){
+                // delay until time to execute the actions (nanosleep until half a millisecond before, then busywait)
+
+                // calculate timespec of next schedule event as loop start time + timespec(offset )
+                loop_offset = double_to_linux_time(el.execution_time);
+                tock = add_linux_times(loop_start_time, loop_offset);
+
+                // calculate timespec difference for now to 0.5ms before next time (in tock)
+                // naive implementation: busy wait, better- nanosleep -> busywait
+                while(linux_time_a_is_less_than_b(tick,tock)){
+                    clock_gettime(CLOCK_MONOTONIC, &tick);
+                }
+
+                // it's now time to do the thing
+                for(int i = 0; i < el.current_action_index; i++){ // creating array with default null action would enable this to simplify to range based loop
+                    // TODO: use priority to abort the current actions if the next evemt has come and has higher priority
+                    el.actions[i](linux_time_to_double(tick) - linux_time_to_double(start_time));
+                }
+            }
+
+            tock = loop_end_time; // increment tock over to end of schedule / start of next one
+            clock_gettime(CLOCK_MONOTONIC, &tick);
+        }
+    }
+
+    // TODO: implement deadzone at end of schedule to allow processing & turnover time
+    // TODO: restrict offset to less than period
+    void add_to_schedule(const double freq, const std::string event_name, const std::function<void(double)> action, const double offset = 0.0) 
     {
         // add event to the schedule such that it is triggered at the desired frequency (assuming a 1hz total schedule frequency)
         double schedule_time = 0.0 + offset;

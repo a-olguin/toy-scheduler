@@ -5,19 +5,19 @@
 #include <array>
 
 void four_hertz_task(double call_time){
-    std::cout << "I'm the first task, running at 4hz! The time (relative to start) is " << std::to_string(call_time) << std::endl; 
+    std::cout << "I'm the 4hz task, running at 4hz! The time (relative to start) is " << std::to_string(call_time) << std::endl; 
 }
 
 void five_hertz_task(double call_time){
-    std::cout << "I'm the second task, running at 5hz! The time (relative to start) is " << std::to_string(call_time) << std::endl; 
+    std::cout << "I'm the 5hz task, running at 5hz! The time (relative to start) is " << std::to_string(call_time) << std::endl; 
 }
 
 void three_hertz_task(double call_time){
-    std::cout << "I'm the third task, running at 3hz! The time (relative to start) is " << std::to_string(call_time) << std::endl; 
+    std::cout << "I'm the 3hz task, running at 3hz! The time (relative to start) is " << std::to_string(call_time) << std::endl; 
 }
 
 void two_hertz_task(double call_time){
-    std::cout << "I'm the third task, running at 2hz! The time (relative to start) is " << std::to_string(call_time) << std::endl; 
+    std::cout << "I'm the 2hz task, running at 2hz! The time (relative to start) is " << std::to_string(call_time) << std::endl; 
 }
 
 void print_schedule(Schedule& schedule){
@@ -46,5 +46,9 @@ int main(int argc, char *argv[]){
     my_schedule.add_to_schedule(4.0, "4hz task", std::function<void(double)>(four_hertz_task), 0.1);
     my_schedule.add_to_schedule(2.0, "2hz task", std::function<void(double)>(two_hertz_task));
     print_schedule(my_schedule);
+
+    // TODO: actually use schedule for 5 seconds (make new one)
+    my_schedule.run(5.0, 0.17);
+    // TODO: implement print-to-file function that prints the event schedule for next x seconds
     return 0;
 }
