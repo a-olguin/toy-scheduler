@@ -98,6 +98,24 @@ public:
         return linux_time_to_double(a) < linux_time_to_double(b);
     }
 
+    // unbelievably lazy, bugprone implemementation of time differencing. Dear reader, don't use this in production.
+    timespec subtract_linux_times(const timespec& a, const timespec& b){
+        timespec retval;
+        retval = double_to_linux_time(linux_time_to_double(a) - linux_time_to_double(b));
+        return retval;
+    }
+
+    timespec subtract_linux_times2(const timespec& a, const timespec& b){
+        timespec retval;
+        retval.tv_sec = a.tv_sec - b.tv_sec;
+        retval.tv_nsec = a.tv_nsec - b.tv_nsec;
+        while (retval.tv_nsec < -1*one_billion_ns_per_s){
+            retval.tv_sec--;
+            retval.tv_nsec += one_billion_ns_per_s;
+        }
+        return retval;
+    }
+
     //TODO: alignment >= 1.0 an error
     //TODO: make time conversion & comparisons less lazy
     void run(const double duration = 0.0, const double alignment = 0.0){ 
@@ -127,14 +145,19 @@ public:
             auto loop_end_time = tock;
             loop_end_time.tv_sec++;
             for(auto& el: schedule){
-                // delay until time to execute the actions (nanosleep until half a millisecond before, then busywait)
-
                 // calculate timespec of next schedule event as loop start time + timespec(offset )
                 loop_offset = double_to_linux_time(el.execution_time);
                 tock = add_linux_times(loop_start_time, loop_offset);
+                clock_gettime(CLOCK_MONOTONIC, &tick);// update tick
 
-                // calculate timespec difference for now to 0.5ms before next time (in tock)
-                // naive implementation: busy wait, better- nanosleep -> busywait
+                // calculate timespec difference for now to 0.5ms before next time (in tock) & nanosleep if applicable
+                loop_offset = subtract_linux_times2(tock,tick); // resuse for 'efficiency'
+                if(linux_time_to_double(loop_offset) > 0.001){
+                    loop_offset = double_to_linux_time(linux_time_to_double(loop_offset) - 0.001); 
+                    loop_offset = add_linux_times(tick, loop_offset);
+                    clock_nanosleep(CLOCK_MONOTONIC,TIMER_ABSTIME,&loop_offset,nullptr);
+                }
+                // busy wait remaining time to next event
                 while(linux_time_a_is_less_than_b(tick,tock)){
                     clock_gettime(CLOCK_MONOTONIC, &tick);
                 }
