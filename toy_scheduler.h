@@ -152,8 +152,8 @@ public:
 
                 // calculate timespec difference for now to 0.5ms before next time (in tock) & nanosleep if applicable
                 loop_offset = subtract_linux_times2(tock,tick); // resuse for 'efficiency'
-                if(linux_time_to_double(loop_offset) > 0.001){
-                    loop_offset = double_to_linux_time(linux_time_to_double(loop_offset) - 0.001); 
+                if(linux_time_to_double(loop_offset) > 0.002){
+                    loop_offset = double_to_linux_time(linux_time_to_double(loop_offset) - 0.002); 
                     loop_offset = add_linux_times(tick, loop_offset);
                     clock_nanosleep(CLOCK_MONOTONIC,TIMER_ABSTIME,&loop_offset,nullptr);
                 }
