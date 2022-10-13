@@ -144,13 +144,29 @@ public:
             auto loop_start_time = tock;
             auto loop_end_time = tock;
             loop_end_time.tv_sec++;
+            auto next_event = schedule.begin();
             for(auto& el: schedule){
                 // calculate timespec of next schedule event as loop start time + timespec(offset )
                 loop_offset = double_to_linux_time(el.execution_time);
                 tock = add_linux_times(loop_start_time, loop_offset);
-                clock_gettime(CLOCK_MONOTONIC, &tick);// update tick
+
+                // get the time and highest priority in the next schedule event
+                SchedulerPriority next_event_highest_prioity = LOW_PRIORITY;
+                timespec next_event_deadline = {};
+
+                if(next_event == schedule.end() || ++next_event == schedule.end()){ // utilize short circuiting to simplify checks (mixing an iterator and range loop necessitated this I think)
+                    next_event_deadline.tv_sec = __LONG_MAX__; // next deadline is nonsensical
+                } else {
+                    next_event_deadline = add_linux_times(loop_start_time, double_to_linux_time((*next_event).execution_time));
+                    for (auto& priority: (*next_event).priorities){
+                        if (priority > next_event_highest_prioity){
+                            next_event_highest_prioity = priority;
+                        }
+                    }
+                }
 
                 // calculate timespec difference for now to 0.5ms before next time (in tock) & nanosleep if applicable
+                clock_gettime(CLOCK_MONOTONIC, &tick);// update tick
                 loop_offset = subtract_linux_times2(tock,tick); // resuse for 'efficiency'
                 if(linux_time_to_double(loop_offset) > 0.002){
                     loop_offset = double_to_linux_time(linux_time_to_double(loop_offset) - 0.002); 
@@ -164,8 +180,13 @@ public:
 
                 // it's now time to do the thing
                 for(int i = 0; i < el.current_action_index; i++){ // creating array with default null action would enable this to simplify to range based loop
-                    // TODO: use priority to abort the current actions if the next evemt has come and has higher priority
+                    
+                    // check current time and next time, abort if we're late and there's a higher priority task waiting
+                    if((linux_time_a_is_less_than_b(next_event_deadline, tick)) && (el.priorities[i] < next_event_highest_prioity)){
+                        break;
+                    }
                     el.actions[i](linux_time_to_double(tick) - linux_time_to_double(start_time));
+                    clock_gettime(CLOCK_MONOTONIC, &tick);
                 }
             }
 
